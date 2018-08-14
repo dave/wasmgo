@@ -68,7 +68,10 @@ func Start(cfg *cmdconfig.Config) error {
 	cmd.Env = append(cmd.Env, "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		if strings.Contains(string(output), "unsupported GOOS/GOARCH pair js/wasm") {
+			return errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
+		}
+		return fmt.Errorf("%v: %s", err, string(output))
 	}
 	if len(output) > 0 {
 		return fmt.Errorf("%s", string(output))

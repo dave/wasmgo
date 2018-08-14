@@ -24,7 +24,7 @@ var deployCmd = &cobra.Command{
 			global.Path = args[0]
 		}
 		if err := deployer.Start(global); err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
 			os.Exit(1)
 		}
 	},
