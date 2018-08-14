@@ -19,7 +19,7 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "jsgo",
+	Use:   "wasmgo",
 	Short: "Compile Go to WASM, test locally or deploy to jsgo.io",
 }
 
