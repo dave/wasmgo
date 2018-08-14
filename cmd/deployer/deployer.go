@@ -207,7 +207,7 @@ func Start(cfg *cmdconfig.Config) error {
 		case servermsg.Error:
 			return errors.New(message.Message)
 		case messages.DeployClientVersionNotSupported:
-			return errors.New("this client version is not supported - try `go get -u github.com/dave/jsgo`")
+			return errors.New("this client version is not supported - try `go get -u github.com/dave/wasmgo`")
 		default:
 			// unexpected
 			fmt.Fprintf(debug, "Unexpected message from server: %#v\n", message)
