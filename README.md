@@ -29,6 +29,14 @@ Flags:
   -v, --verbose                 Show detailed status messages.
 ```
 
+### Example
+
+Here's a simple hello world:
+
+```
+wasmgo deploy -o github.com/dave/wasmgo/helloworld
+```
+
 ### Index
 
 You may specify a custom index page by including `index.jsgo.html` in your project or by using the `index` 
