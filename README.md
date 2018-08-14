@@ -34,7 +34,7 @@ Flags:
 Here's a simple hello world:
 
 ```
-wasmgo deploy -o github.com/dave/wasmgo/helloworld
+wasmgo deploy github.com/dave/wasmgo/helloworld
 ```
 
 ### Index
