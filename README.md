@@ -5,28 +5,12 @@
 The `wasmgo` command compiles Go to WASM and deploys to the [jsgo.io](https://github.com/dave/jsgo) 
 CDN.
 
-```
-Compile Go to WASM, test locally or deploy to jsgo.io
+### Install
 
-Usage:
-  wasmgo [command]
+`go get -u github.com/dave/wasmgo`
 
-Available Commands:
-  deploy      Compile and deploy
-  help        Help about any command
-  serve       Serve locally
-  version     Show client version number
 
-Flags:
-  -c, --command string          Name of the go command. (default "go")
-  -f, --flags string            Flags to pass to the go build command.
-  -h, --help                    help for wasmgo
-  -i, --index index.jsgo.html   Specify the index page. If omitted, use index.jsgo.html if it exists. (default "index.jsgo.html")
-  -o, --open                    Open the page in a browser.
-  -v, --verbose                 Show detailed status messages.
-```
-
-### Deploy
+### Usage
 
 ```
 Compiles Go to WASM and deploys to the jsgo.io CDN.
@@ -35,9 +19,14 @@ Usage:
   wasmgo deploy [package] [flags]
 
 Flags:
-  -h, --help              help for deploy
-  -j, --json              Return all template variables as a json blob from the deploy command.
-  -t, --template string   Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
+  -c, --command string          Name of the go command. (default "go")
+  -f, --flags string            Flags to pass to the go build command.
+  -h, --help                    help for deploy
+  -i, --index index.jsgo.html   Specify the index page. If omitted, use index.jsgo.html if it exists. (default "index.jsgo.html")
+  -j, --json                    Return all template variables as a json blob from the deploy command.
+  -o, --open                    Open the page in a browser.
+  -t, --template string         Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
+  -v, --verbose                 Show detailed status messages.
 ```
 
 ### Index
@@ -56,8 +45,3 @@ Your index page should look something like this:
 </body>
 </html>
 ```
-
-
-### Serve
-
-Serve mode coming soon.

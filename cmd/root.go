@@ -10,14 +10,6 @@ import (
 
 var global = &cmdconfig.Config{}
 
-func init() {
-	rootCmd.PersistentFlags().StringVarP(&global.Index, "index", "i", "index.jsgo.html", "Specify the index page. If omitted, use `index.jsgo.html` if it exists.")
-	rootCmd.PersistentFlags().BoolVarP(&global.Verbose, "verbose", "v", false, "Show detailed status messages.")
-	rootCmd.PersistentFlags().BoolVarP(&global.Open, "open", "o", false, "Open the page in a browser.")
-	rootCmd.PersistentFlags().StringVarP(&global.Command, "command", "c", "go", "Name of the go command.")
-	rootCmd.PersistentFlags().StringVarP(&global.Flags, "flags", "f", "", "Flags to pass to the go build command.")
-}
-
 var rootCmd = &cobra.Command{
 	Use:   "wasmgo",
 	Short: "Compile Go to WASM, test locally or deploy to jsgo.io",
