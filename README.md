@@ -19,14 +19,14 @@ Usage:
   wasmgo deploy [package] [flags]
 
 Flags:
-  -c, --command string          Name of the go command. (default "go")
-  -f, --flags string            Flags to pass to the go build command.
-  -h, --help                    help for deploy
-  -i, --index index.jsgo.html   Specify the index page. (default "index.jsgo.html")
-  -j, --json                    Return all template variables as a json blob from the deploy command.
-  -o, --open                    Open the page in a browser.
-  -t, --template string         Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
-  -v, --verbose                 Show detailed status messages.
+  -c, --command string            Name of the go command. (default "go")
+  -f, --flags string              Flags to pass to the go build command.
+  -h, --help                      help for deploy
+  -i, --index index.wasmgo.html   Specify the index page. (default "index.wasmgo.html")
+  -j, --json                      Return all template variables as a json blob from the deploy command.
+  -o, --open                      Open the page in a browser.
+  -t, --template string           Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
+  -v, --verbose                   Show detailed status messages.
 ```
 
 ### Example
@@ -39,7 +39,7 @@ wasmgo deploy github.com/dave/wasmgo/helloworld
 
 ### Index
 
-You may specify a custom index page by including `index.jsgo.html` in your project or by using the `index` 
+You may specify a custom index page by including `index.wasmgo.html` in your project or by using the `index` 
 command line flag.
 
 Your index page should look something like this:
