@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	deployCmd.PersistentFlags().StringVarP(&global.Index, "index", "i", "index.jsgo.html", "Specify the index page. If omitted, use `index.jsgo.html` if it exists.")
+	deployCmd.PersistentFlags().StringVarP(&global.Index, "index", "i", "index.jsgo.html", "Specify the index page.")
 	deployCmd.PersistentFlags().BoolVarP(&global.Verbose, "verbose", "v", false, "Show detailed status messages.")
 	deployCmd.PersistentFlags().BoolVarP(&global.Open, "open", "o", false, "Open the page in a browser.")
 	deployCmd.PersistentFlags().StringVarP(&global.Command, "command", "c", "go", "Name of the go command.")
