@@ -19,14 +19,15 @@ Usage:
   wasmgo deploy [package] [flags]
 
 Flags:
-  -c, --command string            Name of the go command. (default "go")
-  -f, --flags string              Flags to pass to the go build command.
-  -h, --help                      help for deploy
-  -i, --index index.wasmgo.html   Specify the index page. (default "index.wasmgo.html")
-  -j, --json                      Return all template variables as a json blob from the deploy command.
-  -o, --open                      Open the page in a browser.
-  -t, --template string           Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
-  -v, --verbose                   Show detailed status messages.
+  -b, --build string      Build tags to pass to the go build command.
+  -c, --command string    Name of the go command. (default "go")
+  -f, --flags string      Flags to pass to the go build command.
+  -h, --help              help for deploy
+  -i, --index string      Specify the index page. (default "index.wasmgo.html")
+  -j, --json              Return all template variables as a json blob from the deploy command.
+  -o, --open              Open the page in a browser.
+  -t, --template string   Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
+  -v, --verbose           Show detailed status messages.
 ```
 
 ### Example
