@@ -19,8 +19,6 @@ import (
 	"github.com/dave/jsgo/config"
 	"github.com/dave/jsgo/server/servermsg"
 	"github.com/dave/jsgo/server/wasm/messages"
-	"github.com/dave/patsy"
-	"github.com/dave/patsy/vos"
 	"github.com/dave/services/constor/constormsg"
 	"github.com/dave/wasmgo/cmd/cmdconfig"
 	"github.com/gorilla/websocket"
@@ -39,42 +37,21 @@ func Start(cfg *cmdconfig.Config) error {
 	}
 
 	// create a temp dir
-	dir, err := ioutil.TempDir("", "")
+	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer os.RemoveAll(tempDir)
 
-	fpath := filepath.Join(dir, "out.wasm")
+	fpath := filepath.Join(tempDir, "out.wasm")
 
-	args := []string{"build", "-o", fpath}
-
-	extraFlags := strings.Fields(cfg.Flags)
-	for _, f := range extraFlags {
-		args = append(args, f)
-	}
-
-	path := "."
-	if cfg.Path != "" {
-		path = cfg.Path
-	}
-	args = append(args, path)
-
-	fmt.Fprintln(debug, "Compiling...")
-
-	cmd := exec.Command(cfg.Command, args...)
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "GOARCH=wasm")
-	cmd.Env = append(cmd.Env, "GOOS=js")
-	output, err := cmd.CombinedOutput()
+	sourceDir, err := runGoList(cfg)
 	if err != nil {
-		if strings.Contains(string(output), "unsupported GOOS/GOARCH pair js/wasm") {
-			return errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
-		}
-		return fmt.Errorf("%v: %s", err, string(output))
+		return err
 	}
-	if len(output) > 0 {
-		return fmt.Errorf("%s", string(output))
+
+	if err := runGoBuild(cfg, fpath, debug); err != nil {
+		return err
 	}
 
 	binaryBytes, err := ioutil.ReadFile(fpath)
@@ -125,11 +102,7 @@ func Start(cfg *cmdconfig.Config) error {
 	if cfg.Index != "" {
 		indexFilename := cfg.Index
 		if cfg.Path != "" {
-			dir, err := patsy.Dir(vos.Os(), cfg.Path)
-			if err != nil {
-				return err
-			}
-			indexFilename = filepath.Join(dir, cfg.Index)
+			indexFilename = filepath.Join(sourceDir, cfg.Index)
 		}
 		indexTemplateBytes, err := ioutil.ReadFile(indexFilename)
 		if err != nil && !os.IsNotExist(err) {
@@ -300,4 +273,70 @@ func Start(cfg *cmdconfig.Config) error {
 	}
 
 	return nil
+}
+
+func runGoBuild(cfg *cmdconfig.Config, fpath string, debug io.Writer) error {
+	args := []string{"build", "-o", fpath}
+
+	extraFlags := strings.Fields(cfg.Flags)
+	for _, f := range extraFlags {
+		args = append(args, f)
+	}
+
+	if cfg.BuildTags != "" {
+		args = append(args, "-tags", cfg.BuildTags)
+	}
+
+	path := "."
+	if cfg.Path != "" {
+		path = cfg.Path
+	}
+	args = append(args, path)
+
+	fmt.Fprintln(debug, "Compiling...")
+
+	cmd := exec.Command(cfg.Command, args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GOARCH=wasm")
+	cmd.Env = append(cmd.Env, "GOOS=js")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "unsupported GOOS/GOARCH pair js/wasm") {
+			return errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
+		}
+		return fmt.Errorf("%v: %s", err, string(output))
+	}
+	if len(output) > 0 {
+		return fmt.Errorf("%s", string(output))
+	}
+	return nil
+}
+
+func runGoList(cfg *cmdconfig.Config) (string, error) {
+	args := []string{"list"}
+
+	if cfg.BuildTags != "" {
+		args = append(args, "-tags", cfg.BuildTags)
+	}
+
+	args = append(args, "-f", "{{.Dir}}")
+
+	path := "."
+	if cfg.Path != "" {
+		path = cfg.Path
+	}
+	args = append(args, path)
+
+	cmd := exec.Command(cfg.Command, args...)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "GOARCH=wasm")
+	cmd.Env = append(cmd.Env, "GOOS=js")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(output), "unsupported GOOS/GOARCH pair js/wasm") {
+			return "", errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
+		}
+		return "", fmt.Errorf("%v: %s", err, string(output))
+	}
+	return string(output), nil
 }
