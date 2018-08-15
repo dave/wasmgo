@@ -16,11 +16,11 @@ import (
 	"text/template"
 
 	"github.com/dave/jsgo/assets/std"
-	"github.com/dave/jsgo/config"
 	"github.com/dave/jsgo/server/servermsg"
 	"github.com/dave/jsgo/server/wasm/messages"
 	"github.com/dave/services/constor/constormsg"
 	"github.com/dave/wasmgo/cmd/cmdconfig"
+	"github.com/dave/wasmgo/config"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/browser"
 )
