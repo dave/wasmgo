@@ -36,6 +36,8 @@ func Start(cfg *cmdconfig.Config) error {
 		debug = ioutil.Discard
 	}
 
+	fmt.Fprintln(debug, "Compiling...")
+
 	// create a temp dir
 	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -50,7 +52,7 @@ func Start(cfg *cmdconfig.Config) error {
 		return err
 	}
 
-	if err := runGoBuild(cfg, fpath, debug); err != nil {
+	if err := runGoBuild(cfg, fpath); err != nil {
 		return err
 	}
 
@@ -75,9 +77,9 @@ func Start(cfg *cmdconfig.Config) error {
 
 	loaderBuf := &bytes.Buffer{}
 	loaderSha := sha1.New()
-	wasmUrl := fmt.Sprintf("%s://%s/%x.wasm", config.Protocol[config.Pkg], config.Host[config.Pkg], binarySha.Sum(nil))
+	binaryUrl := fmt.Sprintf("%s://%s/%x.wasm", config.Protocol[config.Pkg], config.Host[config.Pkg], binarySha.Sum(nil))
 	loaderVars := struct{ Binary string }{
-		Binary: wasmUrl,
+		Binary: binaryUrl,
 	}
 	if err := loaderTemplateMin.Execute(io.MultiWriter(loaderBuf, loaderSha), loaderVars); err != nil {
 		return err
@@ -94,9 +96,11 @@ func Start(cfg *cmdconfig.Config) error {
 	indexBuf := &bytes.Buffer{}
 	indexSha := sha1.New()
 	loaderUrl := fmt.Sprintf("%s://%s/%x.js", config.Protocol[config.Pkg], config.Host[config.Pkg], loaderSha.Sum(nil))
-	indexVars := struct{ Script, Loader string }{
-		Script: fmt.Sprintf("%s://%s/wasm_exec.%s.js", config.Protocol[config.Pkg], config.Host[config.Pkg], std.Wasm[true]),
+	scriptUrl := fmt.Sprintf("%s://%s/wasm_exec.%s.js", config.Protocol[config.Pkg], config.Host[config.Pkg], std.Wasm[true])
+	indexVars := struct{ Script, Loader, Binary string }{
+		Script: scriptUrl,
 		Loader: loaderUrl,
+		Binary: binaryUrl,
 	}
 	indexTemplate := defaultIndexTemplate
 	if cfg.Index != "" {
@@ -245,12 +249,11 @@ func Start(cfg *cmdconfig.Config) error {
 		fmt.Fprintln(debug, "No files required.")
 	}
 
-	outputVars := struct {
-		Page   string
-		Loader string
-	}{
+	outputVars := struct{ Page, Script, Loader, Binary string }{
 		Page:   indexUrl,
+		Script: scriptUrl,
 		Loader: loaderUrl,
+		Binary: binaryUrl,
 	}
 
 	if cfg.Json {
@@ -275,7 +278,8 @@ func Start(cfg *cmdconfig.Config) error {
 	return nil
 }
 
-func runGoBuild(cfg *cmdconfig.Config, fpath string, debug io.Writer) error {
+func runGoBuild(cfg *cmdconfig.Config, fpath string) error {
+
 	args := []string{"build", "-o", fpath}
 
 	extraFlags := strings.Fields(cfg.Flags)
@@ -292,8 +296,6 @@ func runGoBuild(cfg *cmdconfig.Config, fpath string, debug io.Writer) error {
 		path = cfg.Path
 	}
 	args = append(args, path)
-
-	fmt.Fprintln(debug, "Compiling...")
 
 	cmd := exec.Command(cfg.Command, args...)
 	cmd.Env = os.Environ()

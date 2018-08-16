@@ -23,10 +23,10 @@ Flags:
   -c, --command string    Name of the go command. (default "go")
   -f, --flags string      Flags to pass to the go build command.
   -h, --help              help for deploy
-  -i, --index string      Specify the index page. (default "index.wasmgo.html")
+  -i, --index string      Specify the index page template. Variables: Script, Loader, Binary. (default "index.wasmgo.html")
   -j, --json              Return all template variables as a json blob from the deploy command.
   -o, --open              Open the page in a browser.
-  -t, --template string   Template defining the output returned by the deploy command. Variables: Page (string), Loader (string). (default "{{ .Page }}")
+  -t, --template string   Template defining the output returned by the deploy command. Variables: Page, Script, Loader, Binary. (default "{{ .Page }}")
   -v, --verbose           Show detailed status messages.
 ```
 
@@ -54,3 +54,12 @@ Your index page should look something like this:
 </body>
 </html>
 ```
+
+### Template variables
+
+The index.wasmgo.html template and the `-t` flag are both templates with several variables available:
+
+* Page - the URL of the page on jsgo.io (command output only)  
+* Script - the URL of the wasm_exec.js file  
+* Loader - the URL of the loader js  
+* Binary - the URL of the WASM binary  
