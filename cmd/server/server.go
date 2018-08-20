@@ -70,16 +70,6 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch {
 	case strings.HasSuffix(req.RequestURI, "/favicon.ico"):
 		// ignore
-	case strings.HasSuffix(req.RequestURI, "/"):
-		// index page
-		contents, _, err := s.dep.Index("/script.js", "/loader.js", "/binary.wasm")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
-		w.Header().Set("Content-Type", "text/html")
-		if _, err := io.Copy(w, bytes.NewReader(contents)); err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
-		}
 	case strings.HasSuffix(req.RequestURI, "/binary.wasm"):
 		// binary
 		contents, hash, err := s.dep.Build()
@@ -105,6 +95,16 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// script
 		w.Header().Set("Content-Type", "application/javascript")
 		if _, err := io.Copy(w, bytes.NewBufferString(WasmExec)); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+	default:
+		// index page
+		contents, _, err := s.dep.Index("/script.js", "/loader.js", "/binary.wasm")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
+		w.Header().Set("Content-Type", "text/html")
+		if _, err := io.Copy(w, bytes.NewReader(contents)); err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
 	}
