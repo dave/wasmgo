@@ -24,6 +24,10 @@ Serves the WASM with a local web server (default to port 8080). Refresh the brow
 
 Deploys the WASM to jsgo.io.
 
+### Package
+
+Omit the package argument to use the code in the current directory.
+
 ### Global flags
 
 ```
@@ -49,12 +53,21 @@ Deploys the WASM to jsgo.io.
   -p, --port int   Server port. (default 8080)
 ```
 
-### Example
+### Examples
 
 Here's a simple hello world:
 
 ```
-wasmgo deploy github.com/dave/wasmgo/helloworld
+$ wasmgo serve github.com/dave/wasmgo/helloworld
+# [http://localhost:8080/ opens in a browser]
+```
+
+Here's an amazing 2048 clone from [hajimehoshi](https://github.com/hajimehoshi):
+
+```
+$ go get -u github.com/hajimehoshi/ebiten/examples/2048/...
+$ wasmgo deploy -b=example github.com/hajimehoshi/ebiten/examples/2048
+https://jsgo.io/2893575ab26da60ef14801541b46201c9d54db13
 ```
 
 ### Index
