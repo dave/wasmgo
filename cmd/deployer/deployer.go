@@ -20,7 +20,7 @@ import (
 	"github.com/dave/jsgo/server/wasm/messages"
 	"github.com/dave/services/constor/constormsg"
 	"github.com/dave/wasmgo/cmd/cmdconfig"
-	"github.com/dave/wasmgo/config"
+	"github.com/dave/wasmgo/cmd/config"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/browser"
 )
