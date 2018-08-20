@@ -115,3 +115,7 @@ The index page template and the `-t` flag are both Go templates with several var
 
 Unfortunately wasmgo does not host your static files. I recommend using [rawgit.com](https://rawgit.com/) 
 to serve static files. 
+
+### Package splitting
+
+The `wasmgo deploy` can't yet split the binary output by Go package, [can you help?](https://github.com/dave/wasmgo/issues/2) 
