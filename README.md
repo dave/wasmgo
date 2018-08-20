@@ -6,12 +6,14 @@ The `wasmgo` command compiles Go to WASM, and serves the binary locally or deplo
 
 ### Install
 
-`go get -u github.com/dave/wasmgo`
+```
+go get -u github.com/dave/wasmgo
+```
 
 ### Serve command
 
 ```
-  wasmgo serve [flags] [package]
+wasmgo serve [flags] [package]
 ```
 
 Serves the WASM with a local web server (default to port 8080). Refresh the browser to recompile.
@@ -19,56 +21,58 @@ Serves the WASM with a local web server (default to port 8080). Refresh the brow
 ### Deploy command
 
 ```
-  wasmgo deploy [flags] [package]
+wasmgo deploy [flags] [package]
 ```
 
-Deploys the WASM to jsgo.io.
-
-### Package
-
-Omit the package argument to use the code in the current directory.
+Deploys the WASM to the [jsgo.io](https://github.com/dave/jsgo) CDN.
 
 ### Global flags
 
 ```
-  -b, --build string     Build tags to pass to the go build command.
-  -c, --command string   Name of the go command. (default "go")
-  -f, --flags string     Flags to pass to the go build command.
-  -h, --help             help for wasmgo
-  -i, --index string     Specify the index page template. Variables: Script, Loader, Binary. (default "index.wasmgo.html")
-  -o, --open             Open the page in a browser. (default true)
-  -v, --verbose          Show detailed status messages.
+-b, --build string     Build tags to pass to the go build command.
+-c, --command string   Name of the go command. (default "go")
+-f, --flags string     Flags to pass to the go build command.
+-h, --help             help for wasmgo
+-i, --index string     Specify the index page template. Variables: Script, Loader, Binary. (default "index.wasmgo.html")
+-o, --open             Open the page in a browser. (default true)
+-v, --verbose          Show detailed status messages.
 ```
 
 ### Deploy flags
 
 ```
-  -j, --json              Return all template variables as a json blob from the deploy command.
-  -t, --template string   Template defining the output returned by the deploy command. Variables: Page, Script, Loader, Binary. (default "{{ .Page }}")
+-j, --json              Return all template variables as a json blob from the deploy command.
+-t, --template string   Template defining the output returned by the deploy command. Variables: Page, Script, Loader, Binary. (default "{{ .Page }}")
 ```
 
 ### Serve flags
 
 ```
-  -p, --port int   Server port. (default 8080)
+-p, --port int   Server port. (default 8080)
 ```
+
+### Package
+
+Omit the package argument to use the code in the current directory.
 
 ### Examples
 
 Here's a simple hello world:
 
 ```
-$ wasmgo serve github.com/dave/wasmgo/helloworld
-# [http://localhost:8080/ opens in a browser]
+wasmgo serve github.com/dave/wasmgo/helloworld
 ```
+
+The page (http://localhost:8080/) opens in a browser.
 
 Here's an amazing 2048 clone from [hajimehoshi](https://github.com/hajimehoshi):
 
 ```
-$ go get -u github.com/hajimehoshi/ebiten/examples/2048/...
-$ wasmgo deploy -b=example github.com/hajimehoshi/ebiten/examples/2048
-https://jsgo.io/2893575ab26da60ef14801541b46201c9d54db13
+go get -u github.com/hajimehoshi/ebiten/examples/2048/...
+wasmgo deploy -b=example github.com/hajimehoshi/ebiten/examples/2048
 ```
+
+[The deployed page](https://jsgo.io/2893575ab26da60ef14801541b46201c9d54db13) opens in a browser.
 
 ### Index
 
@@ -89,9 +93,25 @@ Your index page should look something like this:
 
 ### Template variables
 
-The index.wasmgo.html template and the `-t` flag are both templates with several variables available:
+The index page template and the `-t` flag are both Go templates with several variables available:
 
-* Page - the URL of the page on jsgo.io (command output only)  
-* Script - the URL of the wasm_exec.js file  
-* Loader - the URL of the loader js  
-* Binary - the URL of the WASM binary  
+* *Page*  
+  The URL of the page on jsgo.io (deploy command output only).  
+  
+* *Script*  
+  To load and execute a WASM binary, a some JS bootstap code is required. The wasmgo command uses a minified 
+  version of the [example in the official Go repo](https://github.com/golang/go/blob/master/misc/wasm/wasm_exec.js). 
+  The URL of this script is the `Script` template variable.  
+
+* *Loader*  
+  The loader JS is a simple script that loads and executes the WASM binary. It's based on the [example 
+  in the official Go repo](https://github.com/golang/go/blob/master/misc/wasm/wasm_exec.html#L17-L36), 
+  but simplified to execute the program immediately instead. The URL of this script is the `Loader` template variable.         
+  
+* *Binary*  
+  The URL of the WASM binary file.  
+
+### Static files
+
+Unfortunately wasmgo does not host your static files. I recommend using [rawgit.com](https://rawgit.com/) 
+to serve static files. 
