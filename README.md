@@ -2,32 +2,51 @@
 
 # wasmgo
 
-The `wasmgo` command compiles Go to WASM and deploys to the [jsgo.io](https://github.com/dave/jsgo) 
-CDN.
+The `wasmgo` command compiles Go to WASM, and serves the binary locally or deploys to the [jsgo.io](https://github.com/dave/jsgo) CDN.
 
 ### Install
 
 `go get -u github.com/dave/wasmgo`
 
-
-### Usage
+### Serve command
 
 ```
-Compiles Go to WASM and deploys to the jsgo.io CDN.
+  wasmgo serve [flags] [package]
+```
 
-Usage:
-  wasmgo deploy [package] [flags]
+Serves the WASM with a local web server (default to port 8080). Refresh the browser to recompile.
 
-Flags:
-  -b, --build string      Build tags to pass to the go build command.
-  -c, --command string    Name of the go command. (default "go")
-  -f, --flags string      Flags to pass to the go build command.
-  -h, --help              help for deploy
-  -i, --index string      Specify the index page template. Variables: Script, Loader, Binary. (default "index.wasmgo.html")
+### Deploy command
+
+```
+  wasmgo deploy [flags] [package]
+```
+
+Deploys the WASM to jsgo.io.
+
+### Global flags
+
+```
+  -b, --build string     Build tags to pass to the go build command.
+  -c, --command string   Name of the go command. (default "go")
+  -f, --flags string     Flags to pass to the go build command.
+  -h, --help             help for wasmgo
+  -i, --index string     Specify the index page template. Variables: Script, Loader, Binary. (default "index.wasmgo.html")
+  -o, --open             Open the page in a browser. (default true)
+  -v, --verbose          Show detailed status messages.
+```
+
+### Deploy flags
+
+```
   -j, --json              Return all template variables as a json blob from the deploy command.
-  -o, --open              Open the page in a browser.
   -t, --template string   Template defining the output returned by the deploy command. Variables: Page, Script, Loader, Binary. (default "{{ .Page }}")
-  -v, --verbose           Show detailed status messages.
+```
+
+### Serve flags
+
+```
+  -p, --port int   Server port. (default 8080)
 ```
 
 ### Example
