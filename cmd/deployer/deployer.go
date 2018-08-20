@@ -27,41 +27,32 @@ import (
 
 const CLIENT_VERSION = "1.0.0"
 
-func Start(cfg *cmdconfig.Config) error {
-
-	var debug io.Writer
-	if cfg.Verbose {
-		debug = os.Stdout
-	} else {
-		debug = ioutil.Discard
-	}
-
-	fmt.Fprintln(debug, "Compiling...")
-
-	// create a temp dir
-	tempDir, err := ioutil.TempDir("", "")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(tempDir)
-
-	fpath := filepath.Join(tempDir, "out.wasm")
-
+func New(cfg *cmdconfig.Config) (*State, error) {
 	sourceDir, err := runGoList(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	if err := runGoBuild(cfg, fpath); err != nil {
-		return err
+	s := &State{cfg: cfg, dir: sourceDir}
+	if cfg.Verbose {
+		s.debug = os.Stdout
+	} else {
+		s.debug = ioutil.Discard
 	}
+	return s, nil
+}
 
-	binaryBytes, err := ioutil.ReadFile(fpath)
+type State struct {
+	cfg   *cmdconfig.Config
+	dir   string
+	debug io.Writer
+}
+
+func (d *State) Start() error {
+
+	fmt.Fprintln(d.debug, "Compiling...")
+
+	binaryBytes, binaryHash, err := d.Build()
 	if err != nil {
-		return err
-	}
-	binarySha := sha1.New()
-	if _, err := io.Copy(binarySha, bytes.NewBuffer(binaryBytes)); err != nil {
 		return err
 	}
 
@@ -70,68 +61,39 @@ func Start(cfg *cmdconfig.Config) error {
 	files[messages.DeployFileTypeWasm] = messages.DeployFile{
 		DeployFileKey: messages.DeployFileKey{
 			Type: messages.DeployFileTypeWasm,
-			Hash: fmt.Sprintf("%x", binarySha.Sum(nil)),
+			Hash: fmt.Sprintf("%x", binaryHash),
 		},
 		Contents: binaryBytes,
 	}
 
-	loaderBuf := &bytes.Buffer{}
-	loaderSha := sha1.New()
-	binaryUrl := fmt.Sprintf("%s://%s/%x.wasm", config.Protocol[config.Pkg], config.Host[config.Pkg], binarySha.Sum(nil))
-	loaderVars := struct{ Binary string }{
-		Binary: binaryUrl,
-	}
-	if err := loaderTemplateMin.Execute(io.MultiWriter(loaderBuf, loaderSha), loaderVars); err != nil {
-		return err
-	}
+	binaryUrl := fmt.Sprintf("%s://%s/%x.wasm", config.Protocol[config.Pkg], config.Host[config.Pkg], binaryHash)
+	loaderBytes, loaderHash, err := d.Loader(binaryUrl)
 
 	files[messages.DeployFileTypeLoader] = messages.DeployFile{
 		DeployFileKey: messages.DeployFileKey{
 			Type: messages.DeployFileTypeLoader,
-			Hash: fmt.Sprintf("%x", loaderSha.Sum(nil)),
+			Hash: fmt.Sprintf("%x", loaderHash),
 		},
-		Contents: loaderBuf.Bytes(),
+		Contents: loaderBytes,
 	}
 
-	indexBuf := &bytes.Buffer{}
-	indexSha := sha1.New()
-	loaderUrl := fmt.Sprintf("%s://%s/%x.js", config.Protocol[config.Pkg], config.Host[config.Pkg], loaderSha.Sum(nil))
+	loaderUrl := fmt.Sprintf("%s://%s/%x.js", config.Protocol[config.Pkg], config.Host[config.Pkg], loaderHash)
 	scriptUrl := fmt.Sprintf("%s://%s/wasm_exec.%s.js", config.Protocol[config.Pkg], config.Host[config.Pkg], std.Wasm[true])
-	indexVars := struct{ Script, Loader, Binary string }{
-		Script: scriptUrl,
-		Loader: loaderUrl,
-		Binary: binaryUrl,
-	}
-	indexTemplate := defaultIndexTemplate
-	if cfg.Index != "" {
-		indexFilename := cfg.Index
-		if cfg.Path != "" {
-			indexFilename = filepath.Join(sourceDir, cfg.Index)
-		}
-		indexTemplateBytes, err := ioutil.ReadFile(indexFilename)
-		if err != nil && !os.IsNotExist(err) {
-			return err
-		}
-		if err == nil {
-			indexTemplate, err = template.New("main").Parse(string(indexTemplateBytes))
-			if err != nil {
-				return err
-			}
-		}
-	}
-	if err := indexTemplate.Execute(io.MultiWriter(indexBuf, indexSha), indexVars); err != nil {
+
+	indexBytes, indexHash, err := d.Index(scriptUrl, loaderUrl, binaryUrl)
+	if err != nil {
 		return err
 	}
 
 	files[messages.DeployFileTypeIndex] = messages.DeployFile{
 		DeployFileKey: messages.DeployFileKey{
 			Type: messages.DeployFileTypeIndex,
-			Hash: fmt.Sprintf("%x", indexSha.Sum(nil)),
+			Hash: fmt.Sprintf("%x", indexHash),
 		},
-		Contents: indexBuf.Bytes(),
+		Contents: indexBytes,
 	}
 
-	indexUrl := fmt.Sprintf("%s://%s/%x", config.Protocol[config.Index], config.Host[config.Index], indexSha.Sum(nil))
+	indexUrl := fmt.Sprintf("%s://%s/%x", config.Protocol[config.Index], config.Host[config.Index], indexHash)
 
 	message := messages.DeployQuery{
 		Version: CLIENT_VERSION,
@@ -142,7 +104,7 @@ func Start(cfg *cmdconfig.Config) error {
 		},
 	}
 
-	fmt.Fprintln(debug, "Querying server...")
+	fmt.Fprintln(d.debug, "Querying server...")
 
 	protocol := "wss"
 	if config.Protocol[config.Wasm] == "http" {
@@ -187,14 +149,14 @@ func Start(cfg *cmdconfig.Config) error {
 			return errors.New("this client version is not supported - try `go get -u github.com/dave/wasmgo`")
 		default:
 			// unexpected
-			fmt.Fprintf(debug, "Unexpected message from server: %#v\n", message)
+			fmt.Fprintf(d.debug, "Unexpected message from server: %#v\n", message)
 		}
 	}
 
 	if len(response.Required) > 0 {
 
-		fmt.Fprintf(debug, "Files required: %d.\n", len(response.Required))
-		fmt.Fprintln(debug, "Bundling required files...")
+		fmt.Fprintf(d.debug, "Files required: %d.\n", len(response.Required))
+		fmt.Fprintln(d.debug, "Bundling required files...")
 
 		var required []messages.DeployFile
 		for _, k := range response.Required {
@@ -214,7 +176,7 @@ func Start(cfg *cmdconfig.Config) error {
 			return err
 		}
 
-		fmt.Fprintf(debug, "Sending payload: %dKB.\n", len(payloadBytes)/1024)
+		fmt.Fprintf(d.debug, "Sending payload: %dKB.\n", len(payloadBytes)/1024)
 
 		done = false
 		for !done {
@@ -235,18 +197,18 @@ func Start(cfg *cmdconfig.Config) error {
 				return errors.New(message.Message)
 			case constormsg.Storing:
 				if message.Remain > 0 || message.Finished > 0 {
-					fmt.Fprintf(debug, "Storing, %d to go.\n", message.Remain)
+					fmt.Fprintf(d.debug, "Storing, %d to go.\n", message.Remain)
 				}
 			default:
 				// unexpected
-				fmt.Fprintf(debug, "Unexpected message from server: %#v\n", message)
+				fmt.Fprintf(d.debug, "Unexpected message from server: %#v\n", message)
 			}
 		}
 
-		fmt.Fprintln(debug, "Sending done.")
+		fmt.Fprintln(d.debug, "Sending done.")
 
 	} else {
-		fmt.Fprintln(debug, "No files required.")
+		fmt.Fprintln(d.debug, "No files required.")
 	}
 
 	outputVars := struct{ Page, Script, Loader, Binary string }{
@@ -256,14 +218,14 @@ func Start(cfg *cmdconfig.Config) error {
 		Binary: binaryUrl,
 	}
 
-	if cfg.Json {
+	if d.cfg.Json {
 		out, err := json.Marshal(outputVars)
 		if err != nil {
 			return err
 		}
 		fmt.Println(string(out))
 	} else {
-		tpl, err := template.New("main").Parse(cfg.Template)
+		tpl, err := template.New("main").Parse(d.cfg.Template)
 		if err != nil {
 			return err
 		}
@@ -271,47 +233,109 @@ func Start(cfg *cmdconfig.Config) error {
 		fmt.Println("")
 	}
 
-	if cfg.Open {
+	if d.cfg.Open {
 		browser.OpenURL(indexUrl)
 	}
 
 	return nil
 }
 
-func runGoBuild(cfg *cmdconfig.Config, fpath string) error {
+func (d *State) Loader(binaryUrl string) (contents, hash []byte, err error) {
+	loaderBuf := &bytes.Buffer{}
+	loaderSha := sha1.New()
+	loaderVars := struct{ Binary string }{
+		Binary: binaryUrl,
+	}
+	if err := loaderTemplateMin.Execute(io.MultiWriter(loaderBuf, loaderSha), loaderVars); err != nil {
+		return nil, nil, err
+	}
+	return loaderBuf.Bytes(), loaderSha.Sum(nil), nil
+}
+
+func (d *State) Index(scriptUrl, loaderUrl, binaryUrl string) (contents, hash []byte, err error) {
+	indexBuf := &bytes.Buffer{}
+	indexSha := sha1.New()
+	indexVars := struct{ Script, Loader, Binary string }{
+		Script: scriptUrl,
+		Loader: loaderUrl,
+		Binary: binaryUrl,
+	}
+	indexTemplate := defaultIndexTemplate
+	if d.cfg.Index != "" {
+		indexFilename := d.cfg.Index
+		if d.cfg.Path != "" {
+			indexFilename = filepath.Join(d.dir, d.cfg.Index)
+		}
+		indexTemplateBytes, err := ioutil.ReadFile(indexFilename)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, nil, err
+		}
+		if err == nil {
+			indexTemplate, err = template.New("main").Parse(string(indexTemplateBytes))
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	}
+	if err := indexTemplate.Execute(io.MultiWriter(indexBuf, indexSha), indexVars); err != nil {
+		return nil, nil, err
+	}
+	return indexBuf.Bytes(), indexSha.Sum(nil), nil
+}
+
+func (d *State) Build() (contents, hash []byte, err error) {
+
+	// create a temp dir
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer os.RemoveAll(tempDir)
+
+	fpath := filepath.Join(tempDir, "out.wasm")
 
 	args := []string{"build", "-o", fpath}
 
-	extraFlags := strings.Fields(cfg.Flags)
+	extraFlags := strings.Fields(d.cfg.Flags)
 	for _, f := range extraFlags {
 		args = append(args, f)
 	}
 
-	if cfg.BuildTags != "" {
-		args = append(args, "-tags", cfg.BuildTags)
+	if d.cfg.BuildTags != "" {
+		args = append(args, "-tags", d.cfg.BuildTags)
 	}
 
 	path := "."
-	if cfg.Path != "" {
-		path = cfg.Path
+	if d.cfg.Path != "" {
+		path = d.cfg.Path
 	}
 	args = append(args, path)
 
-	cmd := exec.Command(cfg.Command, args...)
+	cmd := exec.Command(d.cfg.Command, args...)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, "GOARCH=wasm")
 	cmd.Env = append(cmd.Env, "GOOS=js")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(output), "unsupported GOOS/GOARCH pair js/wasm") {
-			return errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
+			return nil, nil, errors.New("you need Go v1.11 to compile WASM. It looks like your default `go` command is not v1.11. Perhaps you need the -c flag to specify a custom command name - e.g. `-c=go1.11beta3`")
 		}
-		return fmt.Errorf("%v: %s", err, string(output))
+		return nil, nil, fmt.Errorf("%v: %s", err, string(output))
 	}
 	if len(output) > 0 {
-		return fmt.Errorf("%s", string(output))
+		return nil, nil, fmt.Errorf("%s", string(output))
 	}
-	return nil
+
+	binaryBytes, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		return nil, nil, err
+	}
+	binarySha := sha1.New()
+	if _, err := io.Copy(binarySha, bytes.NewBuffer(binaryBytes)); err != nil {
+		return nil, nil, err
+	}
+
+	return binaryBytes, binarySha.Sum(nil), nil
 }
 
 func runGoList(cfg *cmdconfig.Config) (string, error) {

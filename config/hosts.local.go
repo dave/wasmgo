@@ -2,10 +2,6 @@
 
 package config
 
-const (
-	LOCAL = true
-)
-
 var Host = map[string]string{
 	Wasm:  "localhost:8083",
 	Pkg:   "localhost:8092",

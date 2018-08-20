@@ -1,10 +1,6 @@
-// +build !dev,!local
+// +build !local
 
 package config
-
-const (
-	LOCAL = false
-)
 
 var Host = map[string]string{
 	Wasm:  "wasm.jsgo.io",
