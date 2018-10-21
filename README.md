@@ -99,7 +99,7 @@ The index page template and the `-t` flag are both Go templates with several var
   The URL of the page on jsgo.io (deploy command output only).  
   
 * *Script*  
-  To load and execute a WASM binary, a some JS bootstap code is required. The wasmgo command uses a minified 
+  To load and execute a WASM binary, a some JS bootstrap code is required. The wasmgo command uses a minified 
   version of the [example in the official Go repo](https://github.com/golang/go/blob/master/misc/wasm/wasm_exec.js). 
   The URL of this script is the `Script` template variable.  
 
