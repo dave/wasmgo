@@ -27,6 +27,10 @@ import (
 
 const CLIENT_VERSION = "1.0.0"
 
+func init() {
+	servermsg.RegisterTypes()
+}
+
 func New(cfg *cmdconfig.Config) (*State, error) {
 	sourceDir, err := runGoList(cfg)
 	if err != nil {
